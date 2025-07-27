@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 #variable
 FPS = 60
@@ -7,6 +8,7 @@ WHITE = (255,255,255)
 GREEN = (0,255,0)
 RED = (255,0,0)
 YELLOW = (255,255,0)
+BLACK = (0,0,0)
 WIDTH = 500
 HEIGHT = 600
 
@@ -16,12 +18,19 @@ screen = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("cosmic survival")
 clock = pygame.time.Clock() #限定while迴圈跑的速度，使程式不因電腦性能差異而速度不同
 
+#pictures
+background_img = pygame.image.load(os.path.join("img", "background.png")).convert() #convert:把圖片轉換成pygame容易讀取的格式
+player_img = pygame.image.load(os.path.join("img", "player.png")).convert()
+stone_img = pygame.image.load(os.path.join("img", "rock.png")).convert() 
+bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert() 
+
+
 #sprite
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((50,40))
-        self.image.fill(GREEN)
+        self.image = pygame.transform.scale(player_img, (50, 23)) #transform:改變圖片大小
+        self.image.set_colorkey(BLACK) #去除黑色外框
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 10
@@ -46,8 +55,8 @@ class Player(pygame.sprite.Sprite):
 class Stone(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30,40))
-        self.image.fill(RED)
+        self.image = stone_img
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = random.randrange(0, WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100,-40)
@@ -66,8 +75,8 @@ class Stone(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((10,20))
-        self.image.fill(YELLOW)
+        self.image = bullet_img
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.bottom = y
@@ -113,6 +122,7 @@ while running:
         running = False
 
     screen.fill(WHITE)
+    screen.blit(background_img, (0,0))
     all_sprite.draw(screen)
     pygame.display.update()
 
