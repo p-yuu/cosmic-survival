@@ -6,6 +6,7 @@ FPS = 60
 WHITE = (255,255,255)
 GREEN = (0,255,0)
 RED = (255,0,0)
+YELLOW = (255,255,0)
 WIDTH = 500
 HEIGHT = 600
 
@@ -36,6 +37,11 @@ class Player(pygame.sprite.Sprite):
             self.rect.right = WIDTH
         if self.rect.left < 0:
             self.rect.left = 0
+    
+    def shoot(self):
+        bullet = Bullet(self.rect.centerx, self.rect.top)
+        all_sprite.add(bullet)
+        bullets.add(bullet)
         
 class Stone(pygame.sprite.Sprite):
     def __init__(self):
@@ -57,12 +63,30 @@ class Stone(pygame.sprite.Sprite):
             self.speedy = random.randrange(2,10)
             self.speedx = random.randrange(-3,3)
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((10,20))
+        self.image.fill(YELLOW)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.bottom = y
+        self.speedy = -10
+
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.bottom < 0:
+            self.kill()
+
 all_sprite = pygame.sprite.Group()
+stones = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
 player = Player()
 all_sprite.add(player)
 for i in range(8):
     stone = Stone()
     all_sprite.add(stone)
+    stones.add(stone)
 
 running = True
 while running:
@@ -71,8 +95,22 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                player.shoot()
 
+    #子彈v.s石頭
     all_sprite.update()
+    hits = pygame.sprite.groupcollide(stones, bullets, True, True)
+    for hit in hits:
+        stone = Stone()
+        all_sprite.add(stone)
+        stones.add(stone)
+
+    #石頭v.s玩家
+    hits = pygame.sprite.spritecollide(player, stones, False)
+    if hits:
+        running = False
 
     screen.fill(WHITE)
     all_sprite.draw(screen)
