@@ -21,9 +21,11 @@ clock = pygame.time.Clock() #限定while迴圈跑的速度，使程式不因電�
 #pictures
 background_img = pygame.image.load(os.path.join("img", "background.png")).convert() #convert:把圖片轉換成pygame容易讀取的格式
 player_img = pygame.image.load(os.path.join("img", "player.png")).convert()
-stone_img = pygame.image.load(os.path.join("img", "rock.png")).convert() 
+#stone_img = pygame.image.load(os.path.join("img", "rock.png")).convert() 
 bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert() 
-
+stone_imgs = []
+for i in range(7):
+    stone_imgs.append(pygame.image.load(os.path.join("img", f"rock{i}.png")).convert())
 
 #sprite
 class Player(pygame.sprite.Sprite):
@@ -32,6 +34,8 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(player_img, (50, 23)) #transform:改變圖片大小
         self.image.set_colorkey(BLACK) #去除黑色外框
         self.rect = self.image.get_rect()
+        self.radius = 20 #設定stone半徑，做圓形碰撞用
+        #pygame.draw.circle(self.image, RED, self.rect.center, self.radius) #輔助觀察圓的大小
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 10
         self.speedx = 8
@@ -55,15 +59,30 @@ class Player(pygame.sprite.Sprite):
 class Stone(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = stone_img
+        self.image_ori = random.choice(stone_imgs) #儲存未失貞原始圖片(因旋轉圖片)
+        self.image_ori.set_colorkey(BLACK)
+        self.image = self.image_ori.copy()
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
+        self.radius = self.rect.width * 0.85 / 2 #設定stone半徑，做圓形碰撞用
+        #pygame.draw.circle(self.image, RED, self.rect.center, self.radius) #輔助觀察圓的大小
         self.rect.x = random.randrange(0, WIDTH - self.rect.width)
-        self.rect.y = random.randrange(-100,-40)
+        self.rect.y = random.randrange(-180,-100)
         self.speedy = random.randrange(2,10)
         self.speedx = random.randrange(-3,3)
+        self.total_degree = 0
+        self.rot_degree = 3 #紀錄旋轉角度
+
+    def rotate(self):
+        self.total_degree += self.rot_degree
+        self.total_degree = self.total_degree % 360 #限定最多只轉360度
+        self.image = pygame.transform.rotate(self.image_ori, self.total_degree) #用靜止圖片轉動防止失貞累加
+        center = self.rect.center
+        self.rect = self.image.get_rect() #捕捉到轉動過有位移的圖片
+        self.rect.center = center
 
     def update(self):
+        self.rotate()
         self.rect.y += self.speedy
         self.rect.x += self.speedx
         if self.rect.top > HEIGHT or self.rect.left > WIDTH or self.rect.right < 0:
@@ -117,7 +136,7 @@ while running:
         stones.add(stone)
 
     #石頭v.s玩家
-    hits = pygame.sprite.spritecollide(player, stones, False)
+    hits = pygame.sprite.spritecollide(player, stones, False, pygame.sprite.collide_circle)
     if hits:
         running = False
 
