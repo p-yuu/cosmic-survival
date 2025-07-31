@@ -14,6 +14,7 @@ HEIGHT = 600
 
 #initialize
 pygame.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("cosmic survival")
 clock = pygame.time.Clock() #限定while迴圈跑的速度，使程式不因電腦性能差異而速度不同
@@ -26,6 +27,25 @@ bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert()
 stone_imgs = []
 for i in range(7):
     stone_imgs.append(pygame.image.load(os.path.join("img", f"rock{i}.png")).convert())
+
+#music
+shoot_sound = pygame.mixer.Sound(os.path.join("sound", "shoot.wav"))
+expl_sound = [
+    pygame.mixer.Sound(os.path.join("sound", "expl0.wav")),
+    pygame.mixer.Sound(os.path.join("sound", "expl1.wav"))
+]
+pygame.mixer.music.load(os.path.join("sound", "background.ogg"))
+pygame.mixer.music.set_volume(0.4) #數字表聲音大小(0~1)
+
+#text
+font_name = pygame.font.match_font('arial')
+def draw_text(surf, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, WHITE) #True: 文字反鋸齒
+    text_rect = text_surface.get_rect()
+    text_rect.centerx = x
+    text_rect.top = y
+    surf.blit(text_surface, text_rect)
 
 #sprite
 class Player(pygame.sprite.Sprite):
@@ -55,6 +75,7 @@ class Player(pygame.sprite.Sprite):
         bullet = Bullet(self.rect.centerx, self.rect.top)
         all_sprite.add(bullet)
         bullets.add(bullet)
+        shoot_sound.play()
         
 class Stone(pygame.sprite.Sprite):
     def __init__(self):
@@ -64,7 +85,7 @@ class Stone(pygame.sprite.Sprite):
         self.image = self.image_ori.copy()
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.radius = self.rect.width * 0.85 / 2 #設定stone半徑，做圓形碰撞用
+        self.radius = int(self.rect.width * 0.85 / 2) #設定stone半徑，做圓形碰撞用
         #pygame.draw.circle(self.image, RED, self.rect.center, self.radius) #輔助觀察圓的大小
         self.rect.x = random.randrange(0, WIDTH - self.rect.width)
         self.rect.y = random.randrange(-180,-100)
@@ -115,6 +136,8 @@ for i in range(8):
     stone = Stone()
     all_sprite.add(stone)
     stones.add(stone)
+score = 0
+pygame.mixer.music.play(-1) #-1:無限重複撥放
 
 running = True
 while running:
@@ -131,6 +154,8 @@ while running:
     all_sprite.update()
     hits = pygame.sprite.groupcollide(stones, bullets, True, True)
     for hit in hits:
+        random.choice(expl_sound).play()
+        score += hit.radius
         stone = Stone()
         all_sprite.add(stone)
         stones.add(stone)
@@ -143,6 +168,7 @@ while running:
     screen.fill(WHITE)
     screen.blit(background_img, (0,0))
     all_sprite.draw(screen)
+    draw_text(screen, str(score), 18, WIDTH / 2, 10)
     pygame.display.update()
 
 pygame.quit()
