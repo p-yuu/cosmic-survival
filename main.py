@@ -40,9 +40,15 @@ for i in range(9):
     player_expl_img = pygame.image.load(os.path.join("img", f"player_expl{i}.png")).convert()
     player_expl_img.set_colorkey(BLACK)
     expl_anim['player'].append(player_expl_img)
+power_imgs = {}
+power_imgs['shield'] = pygame.image.load(os.path.join("img", "shield.png")).convert()
+power_imgs['gun'] = pygame.image.load(os.path.join("img", "gun.png")).convert()
+
 
 #music
 shoot_sound = pygame.mixer.Sound(os.path.join("sound", "shoot.wav"))
+gun_sound = pygame.mixer.Sound(os.path.join("sound", "pow1.wav"))
+shield_sound = pygame.mixer.Sound(os.path.join("sound", "pow0.wav"))
 die_sound = pygame.mixer.Sound(os.path.join("sound", "rumble.ogg"))
 expl_sound = [
     pygame.mixer.Sound(os.path.join("sound", "expl0.wav")),
@@ -100,9 +106,16 @@ class Player(pygame.sprite.Sprite):
         self.lives = 3
         self.hidden = False
         self.hide_time = 0
+        self.gun = 1
+        self.gun_time = 0
 
     def update(self):
-        if self.hidden and pygame.time.get_ticks() - self.hide_time > 1000:
+        now = pygame.time.get_ticks()
+        if self.gun > 1 and now - self.gun_time > 3000:
+            self.gun = 1
+            self.gun_time = now
+
+        if self.hidden and now - self.hide_time > 1000:
             self.hidden = False
             self.rect.centerx = WIDTH / 2
             self.rect.bottom = HEIGHT - 10
@@ -119,15 +132,28 @@ class Player(pygame.sprite.Sprite):
     
     def shoot(self):
         if not(self.hidden):
-            bullet = Bullet(self.rect.centerx, self.rect.top)
-            all_sprite.add(bullet)
-            bullets.add(bullet)
-            shoot_sound.play()
-
+            if self.gun == 1:
+                bullet = Bullet(self.rect.centerx, self.rect.top)
+                all_sprite.add(bullet)
+                bullets.add(bullet)
+                shoot_sound.play()
+            elif self.gun >= 2:
+                bullet1 = Bullet(self.rect.left, self.rect.centery)
+                bullet2 = Bullet(self.rect.right, self.rect.centery)
+                all_sprite.add(bullet1)
+                all_sprite.add(bullet2)
+                bullets.add(bullet1)
+                bullets.add(bullet2)
+                shoot_sound.play()            
+        
     def hide(self):
         self.hidden = True
         self.hide_time = pygame.time.get_ticks()
         self.rect.center = (WIDTH / 2, HEIGHT + 500)
+
+    def gunup(self):
+        self.gun += 1
+        self.gun_time = pygame.time.get_ticks()
         
 class Stone(pygame.sprite.Sprite):
     def __init__(self):
@@ -203,9 +229,25 @@ class Explosion(pygame.sprite.Sprite):
                 self.rect = self.image.get_rect()
                 self.rect.center = center
 
+class Power(pygame.sprite.Sprite):
+    def __init__(self, center):
+        pygame.sprite.Sprite.__init__(self)
+        self.type = random.choice(['shield', 'gun'])
+        self.image = power_imgs[self.type]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.speedy = 3
+
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill()
+
 all_sprite = pygame.sprite.Group()
 stones = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+powers = pygame.sprite.Group()
 player = Player()
 all_sprite.add(player)
 for i in range(8):
@@ -232,6 +274,10 @@ while running:
         score += hit.radius
         expl = Explosion(hit.rect.center, 'lg')
         all_sprite.add(expl)
+        if random.random() > 0.9:
+            pow = Power(hit.rect.center)
+            all_sprite.add(pow)
+            powers.add(pow)
         new_stone()
 
     #石頭v.s玩家
@@ -248,6 +294,18 @@ while running:
             player.lives -= 1
             player.health = 100
             player.hide()
+
+    hits = pygame.sprite.spritecollide(player, powers, True)
+    for hit in hits:
+        if hit.type == 'shield':
+            player.health += 20
+            if player.health > 100:
+                player.health = 100
+            shield_sound.play()
+        if hit.type == 'gun':
+            player.gunup()
+            gun_sound.play()
+        
 
     if player.lives == 0 and not(death_expl.alive()):
         running = False
