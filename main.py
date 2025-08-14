@@ -90,6 +90,22 @@ def draw_lives(surf, lives, img, x, y):
         img_rect.y = y
         surf.blit(img, img_rect)
 
+def draw_init():
+    screen.blit(background_img, (0,0))
+    draw_text(screen, 'Cosmic Survival', 64, WIDTH / 2, HEIGHT / 4)
+    draw_text(screen, '<- -> : move spacecraft', 22, WIDTH / 2, HEIGHT / 2)
+    draw_text(screen, 'SPACE : shoot bullets', 22, WIDTH / 2, (HEIGHT / 2) + 22)
+    draw_text(screen, 'press any key to start the game', 18, WIDTH / 2, HEIGHT * 3 / 4)
+    pygame.display.update()
+    waiting = True
+    while waiting:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYUP: #等到按鍵被鬆開後
+                waiting = False
+
 #sprite
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -244,19 +260,24 @@ class Power(pygame.sprite.Sprite):
         if self.rect.top > HEIGHT:
             self.kill()
 
-all_sprite = pygame.sprite.Group()
-stones = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
-powers = pygame.sprite.Group()
-player = Player()
-all_sprite.add(player)
-for i in range(8):
-    new_stone()
-score = 0
 pygame.mixer.music.play(-1) #-1:無限重複撥放
 
+show_init = True
 running = True
 while running:
+    if show_init:
+        draw_init()
+        show_init = False
+        all_sprite = pygame.sprite.Group()
+        stones = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        powers = pygame.sprite.Group()
+        player = Player()
+        all_sprite.add(player)
+        for i in range(8):
+            new_stone()
+        score = 0
+
     clock.tick(FPS) # while一秒最多只能執行n次
 
     for event in pygame.event.get():
@@ -308,7 +329,7 @@ while running:
         
 
     if player.lives == 0 and not(death_expl.alive()):
-        running = False
+        show_init = True
 
     screen.fill(WHITE)
     screen.blit(background_img, (0,0))
